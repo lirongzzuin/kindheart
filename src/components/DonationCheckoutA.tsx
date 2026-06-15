@@ -125,13 +125,13 @@ export function DonationCheckoutA({ fundId, fundName }: { fundId: string; fundNa
               key={v}
               onClick={() => pickPreset(v)}
               aria-pressed={amount === v && custom === ""}
-              className={`h-[56px] border-2 rounded-xl font-button-text transition-all ${
+              className={`h-16 border-2 rounded-xl text-xl font-bold transition-all tap-scale ${
                 amount === v && custom === ""
                   ? "bg-primary text-on-primary border-primary"
                   : "border-outline-variant text-on-surface hover:bg-surface-container-low"
               }`}
             >
-              {(v / 10000).toLocaleString()}만
+              {v.toLocaleString()}원
             </button>
           ))}
         </div>

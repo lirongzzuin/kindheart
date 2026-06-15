@@ -14,6 +14,23 @@ declare global {
   }
 }
 
+// 플랫폼 브랜드 로고 (인라인 SVG)
+const KakaoLogo = (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12 3C6.48 3 2 6.58 2 11c0 2.86 1.9 5.37 4.76 6.78-.21.77-.76 2.78-.87 3.21-.14.54.2.53.41.39.17-.12 2.65-1.8 3.72-2.53.64.08 1.3.13 1.98.13 5.52 0 10-3.58 10-8S17.52 3 12 3z" />
+  </svg>
+);
+const XLogo = (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+const FacebookLogo = (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.49 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+  </svg>
+);
+
 const KAKAO_SDK = "https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js";
 
 function absUrl(path: string): string {
@@ -108,12 +125,14 @@ export function ShareButton({
       await copyLink(); // 폴백: 링크 복사
       return;
     }
+    // 카카오 피드는 유효한 imageUrl 이 필요. 사연 이미지가 있으면 사용, 없으면 기본 OG 이미지.
+    const ogImage = imageUrl || `${window.location.origin}/og-default.png`;
     Kakao.Share.sendDefault({
       objectType: "feed",
       content: {
         title,
         description: desc,
-        imageUrl: imageUrl || `${typeof window !== "undefined" ? window.location.origin : ""}/icon-512.png`,
+        imageUrl: ogImage,
         link: { mobileWebUrl: url, webUrl: url },
       },
       buttons: [{ title: "사연 보고 같이 후원하기", link: { mobileWebUrl: url, webUrl: url } }],
@@ -138,14 +157,13 @@ export function ShareButton({
       label: "카카오톡",
       bg: "bg-[#FEE500]",
       fg: "text-[#191919]",
-      glyph: <Icon name="chat_bubble" fill />,
+      glyph: KakaoLogo,
       onClick: shareKakao,
     },
     { key: "copy", label: copied ? "복사됨" : "링크 복사", bg: "bg-surface-container-high", fg: "text-on-surface", glyph: <Icon name={copied ? "check" : "link"} />, onClick: copyLink },
     { key: "sms", label: "문자", bg: "bg-[#34C759]", fg: "text-white", glyph: <Icon name="sms" fill />, onClick: () => openExternal(`sms:?&body=${encodeURIComponent(`${shareText} ${url}`)}`) },
-    { key: "x", label: "X", bg: "bg-black", fg: "text-white", glyph: <span className="font-extrabold text-lg">X</span>, onClick: () => openExternal(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`) },
-    { key: "fb", label: "페이스북", bg: "bg-[#1877F2]", fg: "text-white", glyph: <span className="font-extrabold text-lg">f</span>, onClick: () => openExternal(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`) },
-    { key: "band", label: "밴드", bg: "bg-[#03C75A]", fg: "text-white", glyph: <span className="font-extrabold">B</span>, onClick: () => openExternal(`https://band.us/plugin/share?body=${encodeURIComponent(`${shareText}\n${url}`)}&route=${encodeURIComponent(url)}`) },
+    { key: "x", label: "X", bg: "bg-black", fg: "text-white", glyph: XLogo, onClick: () => openExternal(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`) },
+    { key: "fb", label: "페이스북", bg: "bg-[#1877F2]", fg: "text-white", glyph: FacebookLogo, onClick: () => openExternal(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`) },
   ];
 
   // 버튼 스타일

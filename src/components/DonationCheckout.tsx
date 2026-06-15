@@ -104,13 +104,13 @@ export function DonationCheckout({
               key={v}
               onClick={() => pickPreset(v)}
               aria-pressed={amount === v && custom === ""}
-              className={`h-16 border rounded-2xl font-headline-md transition-all tap-scale ${
+              className={`h-16 border rounded-2xl text-xl font-bold transition-all tap-scale ${
                 amount === v && custom === ""
                   ? "bg-primary text-on-primary border-primary shadow-cta scale-[1.02]"
                   : "border-outline-variant text-on-surface bg-surface-container-lowest hover:bg-surface-container-low"
               }`}
             >
-              {(v / 10000).toLocaleString()}만
+              {v.toLocaleString()}원
             </button>
           ))}
         </div>
