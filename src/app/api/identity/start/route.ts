@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildNiceRequest, CHECKPLUS_URL, niceConfigured } from "@/lib/adapters/nice";
 import { encryptPII } from "@/lib/crypto";
+import { getServerSupabase } from "@/lib/supabase/server";
 import { FEATURES } from "@/lib/config";
 
 /**
@@ -15,6 +16,19 @@ export async function GET(req: NextRequest) {
   const origin = req.nextUrl.origin;
   const gate = req.nextUrl.searchParams.get("gate") ?? "signup";
   const returnUrl = process.env.NICE_RETURN_URL || `${origin}/api/identity/callback`;
+
+  // 로그인 사용자라면 id 를 함께 봉인 → 콜백에서 그 사용자에게 본인확인 결과를 저장.
+  // (콜백은 NICE 도메인발 cross-site POST 라 세션 쿠키가 안 실릴 수 있으므로 여기서 잡아둔다)
+  let userId: string | null = null;
+  try {
+    const supabase = getServerSupabase();
+    if (supabase) {
+      const { data } = await supabase.auth.getUser();
+      userId = data.user?.id ?? null;
+    }
+  } catch {
+    /* 비로그인(예: 회원가입 전) */
+  }
 
   let nice;
   try {
@@ -36,7 +50,7 @@ export async function GET(req: NextRequest) {
   const res = new NextResponse(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
   // key/iv/reqNo/gate 를 암호화하여 단기 쿠키에 저장(콜백에서 복호화에 사용).
   // NICE 도메인 → 우리 콜백으로 cross-site POST 되므로 SameSite=None.
-  const sealed = encryptPII(JSON.stringify({ key: nice.key, iv: nice.iv, reqNo: nice.reqNo, gate }));
+  const sealed = encryptPII(JSON.stringify({ key: nice.key, iv: nice.iv, reqNo: nice.reqNo, gate, userId }));
   res.cookies.set("kh_nice", sealed, {
     httpOnly: true,
     secure: true,

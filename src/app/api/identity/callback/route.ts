@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeNiceResult } from "@/lib/adapters/nice";
 import { decryptPII, encryptPII, hashIdentifier } from "@/lib/crypto";
+import { getAdminSupabase } from "@/lib/supabase/admin";
 
 /**
  * NICE 표준창 결과 콜백 — NICE 가 enc_data 를 POST. 복호화하여 CI/DI/이름 취득 →
@@ -28,7 +29,12 @@ export async function POST(req: NextRequest) {
     const sealed = req.cookies.get("kh_nice")?.value;
     if (!encData || !sealed) return resultHtml(origin, false, "");
 
-    const { key, iv } = JSON.parse(decryptPII(sealed)) as { key: string; iv: string; gate: string };
+    const { key, iv, userId } = JSON.parse(decryptPII(sealed)) as {
+      key: string;
+      iv: string;
+      gate: string;
+      userId: string | null;
+    };
     const result = decodeNiceResult(encData, key, iv);
 
     if (result.resultcode !== "0000" || !result.ci) {
@@ -40,11 +46,39 @@ export async function POST(req: NextRequest) {
     const ciHash = hashIdentifier(result.ci);
     const diHash = result.di ? hashIdentifier(result.di) : null;
     const nameEnc = result.name ? encryptPII(result.name) : null;
-    // TODO(DB): 로그인 사용자(app_user)에 ci_hash/di_hash/name_enc/identity_verified=true 저장.
-    //   ci_hash 유니크 위반 시 동일인 다중계정 → 통합/차단. + audit_log.
-    void ciHash;
-    void diHash;
-    void nameEnc;
+
+    // 로그인 사용자면 app_user 에 저장(서비스 롤). ci_hash 유니크 위반 = 동일인 다중계정 → 차단.
+    const admin = getAdminSupabase();
+    if (userId && admin) {
+      const { data: dup } = await admin
+        .from("app_user")
+        .select("id")
+        .eq("ci_hash", ciHash)
+        .neq("id", userId)
+        .maybeSingle();
+      if (dup) {
+        // 이미 다른 계정이 이 CI 로 인증됨 → 다중계정 차단
+        return resultHtml(origin, false, "");
+      }
+      await admin
+        .from("app_user")
+        .update({
+          ci_hash: ciHash,
+          di_hash: diHash,
+          name_enc: nameEnc,
+          identity_verified: true,
+          verified_at: new Date().toISOString(),
+        })
+        .eq("id", userId);
+      await admin.from("audit_log").insert({
+        actor_id: userId,
+        action: "identity_verify",
+        entity: "app_user",
+        entity_id: userId,
+        meta: { method: "nice" },
+      });
+    }
+    // userId 가 없으면(회원가입 전 본인인증) 결과만 반환 → 가입 완료 시 연결(후속).
 
     return resultHtml(origin, true, result.name ?? "");
   } catch {
