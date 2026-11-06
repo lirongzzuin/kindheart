@@ -1,12 +1,38 @@
-node_modules
-.next
-out
-.env
-.env.local
-.env*.local
-.DS_Store
-*.log
-.vercel
-next-env.d.ts
-tsconfig.tsbuildinfo
+# dependencies
+node_modules/
+
+# build output
+.next/
+out/
+build/
+dist/
 *.tsbuildinfo
+next-env.d.ts
+
+# env (keep only the example)
+.env
+.env.*
+!.env.example
+
+# keys / certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# logs / local data
+*.log
+npm-debug.log*
+*.sqlite
+*.db
+coverage/
+
+# deploy / tooling
+.vercel
+.supabase/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
